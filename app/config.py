@@ -41,7 +41,8 @@ class AppConfig:
     output_dir: Path
     rclone_remote_name: str
     rclone_dest_path: str
-    firebase_credentials: Path
+    firebase_enabled: bool
+    firebase_credentials: Optional[Path]
 
 
 _DEFAULTS = {
@@ -66,9 +67,17 @@ def load_config() -> AppConfig:
     rclone_dest_path = _get_env(
         "RCLONE_DEST_PATH", default=_DEFAULTS["RCLONE_DEST_PATH"], required=True
     )
-    firebase_credentials_raw = _get_env(
-        "FIREBASE_CREDENTIALS", default=_DEFAULTS["FIREBASE_CREDENTIALS"], required=True
-    )
+    
+    firebase_enabled_raw = _get_env("FIREBASE_ENABLED", default="true", required=False)
+    firebase_enabled = _parse_bool(firebase_enabled_raw, "FIREBASE_ENABLED")
+    
+    # Only require Firebase credentials if Firebase is enabled
+    firebase_credentials: Optional[Path] = None
+    if firebase_enabled:
+        firebase_credentials_raw = _get_env(
+            "FIREBASE_CREDENTIALS", default=_DEFAULTS["FIREBASE_CREDENTIALS"], required=True
+        )
+        firebase_credentials = Path(firebase_credentials_raw)
 
     return AppConfig(
         daemon_mode=_parse_bool(daemon_mode_raw, "DAEMON_MODE"),
@@ -76,5 +85,6 @@ def load_config() -> AppConfig:
         output_dir=Path(output_dir_raw),
         rclone_remote_name=rclone_remote_name,
         rclone_dest_path=rclone_dest_path,
-        firebase_credentials=Path(firebase_credentials_raw),
+        firebase_enabled=firebase_enabled,
+        firebase_credentials=firebase_credentials,
     )

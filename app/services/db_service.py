@@ -2,10 +2,11 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+if TYPE_CHECKING:
+    import firebase_admin
+    from firebase_admin import credentials, firestore
 
 
 class DatabaseError(Exception):
@@ -13,7 +14,7 @@ class DatabaseError(Exception):
 
 
 # Global Firestore client (lazy singleton)
-_db_client: Optional[firestore.client.Client] = None
+_db_client: Optional[Any] = None
 
 
 _TRUTHY = {"1", "true", "yes", "on", "y", "t"}
@@ -31,7 +32,7 @@ def _firebase_enabled() -> bool:
     return False
 
 
-def get_db_client() -> firestore.client.Client:
+def get_db_client():
     """
     Get or initialize the Firestore client (lazy singleton pattern).
 
@@ -46,6 +47,10 @@ def get_db_client() -> firestore.client.Client:
     """
     if not _firebase_enabled():
         raise DatabaseError("Firebase disabled via FIREBASE_ENABLED=false")
+
+    # Import Firebase modules only when needed
+    import firebase_admin
+    from firebase_admin import credentials, firestore
 
     global _db_client
 

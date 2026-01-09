@@ -131,14 +131,19 @@ class TestE2ESmoke:
         test_file = tmp_path / "test.jpg"
         test_file.write_bytes(b"test")
 
-        with patch("app.cli.sanitize_file") as mock_sanitize:
+        with patch("app.cli.get_file_metadata") as mock_get_meta, \
+             patch("app.cli.sanitize_file") as mock_sanitize:
+            mock_get_meta.return_value = {
+                "success": True,
+                "metadata": {},
+            }
             mock_sanitize.return_value = {
                 "success": True,
                 "file": str(test_file),
                 "file_size": 100,
             }
 
-            result = runner.invoke(app, ["sanitize", str(test_file)])
+            result = runner.invoke(app, ["sanitize", str(test_file), "--confirm"])
             assert result.exit_code == 0
 
     def test_config_loading(self):

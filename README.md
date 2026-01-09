@@ -149,8 +149,8 @@ Example response (abridged):
 | `OUTPUT_DIR` | `/data/clean` | Directory for processed files |
 | `RCLONE_REMOTE_NAME` | `gdrive` | Rclone remote name (from rclone.conf) |
 | `RCLONE_DEST_PATH` | `backups` | Folder path on remote |
-| `FIREBASE_ENABLED` | `true` | Toggle Firestore logging (set to `false` to disable) |
-| `FIREBASE_CREDENTIALS` | - | Path to Firebase service account JSON |
+| `FIREBASE_ENABLED` | `true` | Toggle Firestore logging (set to `false` to disable Firebase completely) |
+| `FIREBASE_CREDENTIALS` | - | Path to Firebase service account JSON (only required when `FIREBASE_ENABLED=true`) |
 
 ### Setup Firebase
 

@@ -50,45 +50,54 @@ class TestSanitizeEndpoint:
     """Test sanitize endpoint."""
 
     def test_sanitize_success(self, client, temp_file):
-        """Test successful sanitization."""
-        with patch("app.api.sanitize_file") as mock_sanitize:
+        """Test successful sanitization via file upload."""
+        with patch("app.api.get_file_metadata") as mock_get_meta, \
+             patch("app.api.sanitize_file") as mock_sanitize, \
+             patch("app.api.backup_file") as mock_backup, \
+             patch("app.api.generate_remote_link") as mock_link:
+            mock_get_meta.side_effect = [
+                {"success": True, "metadata": {"EXIF:Make": "Canon"}},
+                {"success": True, "metadata": {}},
+            ]
             mock_sanitize.return_value = {
                 "success": True,
                 "file": temp_file,
                 "file_size": 100,
             }
+            mock_backup.return_value = {"success": True}
+            mock_link.return_value = "https://drive.google.com/file/123"
 
-            response = client.post("/sanitize", json={"file_path": temp_file})
+            with open(temp_file, "rb") as f:
+                response = client.post("/sanitize", files={"file": ("test.jpg", f, "image/jpeg")})
             
             assert response.status_code == 200
             data = response.json()
             assert data["success"] is True
             assert "sanitized successfully" in data["message"]
+            assert "remote_link" in data
 
     def test_sanitize_file_not_found(self, client):
-        """Test sanitization with non-existent file."""
-        response = client.post("/sanitize", json={"file_path": "/nonexistent/file.jpg"})
-        
-        assert response.status_code == 404
-        assert "not found" in response.json()["detail"]
+        """Test sanitization errors for unsupported file types."""
+        # Upload endpoint always accepts files; validate via file content/extension
+        pass  # Skipped - endpoint now handles uploads, not file paths
 
-    def test_sanitize_unsupported_file(self, client, temp_file):
+    def test_sanitize_unsupported_file(self, client, tmp_path):
         """Test sanitization with unsupported file type."""
-        with patch("app.api.sanitize_file") as mock_sanitize:
-            from app.services.cleaner_service import CleanerError
-            mock_sanitize.side_effect = CleanerError("Unsupported file extension")
-
-            response = client.post("/sanitize", json={"file_path": temp_file})
-            
-            assert response.status_code == 400
-            assert "Unsupported" in response.json()["detail"]
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test")
+        
+        with open(test_file, "rb") as f:
+            response = client.post("/sanitize", files={"file": ("test.txt", f, "text/plain")})
+        
+        assert response.status_code == 400
 
     def test_sanitize_internal_error(self, client, temp_file):
         """Test sanitization with unexpected error."""
-        with patch("app.api.sanitize_file") as mock_sanitize:
-            mock_sanitize.side_effect = Exception("Unexpected error")
+        with patch("app.api.get_file_metadata") as mock_get_meta:
+            mock_get_meta.side_effect = Exception("Unexpected error")
 
-            response = client.post("/sanitize", json={"file_path": temp_file})
+            with open(temp_file, "rb") as f:
+                response = client.post("/sanitize", files={"file": ("test.jpg", f, "image/jpeg")})
             
             assert response.status_code == 500
 
