@@ -1,4 +1,5 @@
 """Tests for Firestore file event logging."""
+import os
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -95,6 +96,15 @@ class TestLogFileEvent:
 
             with pytest.raises(DatabaseError, match="Cannot log file event"):
                 log_file_event("file.txt", original_backed_up=True)
+
+    def test_log_file_event_disabled(self):
+        """Test logging is skipped when FIREBASE_ENABLED=false."""
+        with patch.dict(os.environ, {"FIREBASE_ENABLED": "false"}):
+            with patch("app.services.db_service.get_db_client") as mock_get_db:
+                doc_id = log_file_event("file.txt", original_backed_up=True)
+
+                assert doc_id == "firebase_disabled"
+                mock_get_db.assert_not_called()
 
     def test_log_file_event_firestore_write_fails(self):
         """Test logging fails when Firestore write fails."""

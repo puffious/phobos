@@ -6,6 +6,7 @@ import pytest
 from app.services.cleaner_service import (
     SUPPORTED_EXTENSIONS,
     CleanerError,
+    get_file_metadata,
     sanitize_file,
 )
 
@@ -235,3 +236,59 @@ class TestSanitizeFile:
 
             assert result["success"] is True
             assert result["extension"] == ".jpeg"
+
+
+class TestGetFileMetadata:
+    """Test the get_file_metadata function."""
+
+    def test_get_file_metadata_success(self, temp_image):
+        """Test successful metadata retrieval for a file."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout='[{"SourceFile": "file.jpg", "ISO": 100, "Make": "Canon"}]',
+                stderr="",
+            )
+
+            result = get_file_metadata(temp_image)
+
+            assert result["success"] is True
+            assert result["metadata"]["ISO"] == 100
+            assert "SourceFile" not in result["metadata"]
+
+            call_args = mock_run.call_args[0][0]
+            assert call_args[0] == "exiftool"
+            assert "-json" in call_args
+            assert temp_image in call_args
+
+    def test_get_file_metadata_exiftool_not_found(self, temp_image):
+        """Test metadata retrieval when exiftool is missing."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("exiftool not found")
+
+            with pytest.raises(CleanerError, match="exiftool not found in PATH"):
+                get_file_metadata(temp_image)
+
+    def test_get_file_metadata_fails(self, temp_image):
+        """Test metadata retrieval failure returns helpful error."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1,
+                stdout="",
+                stderr="Permission denied",
+            )
+
+            with pytest.raises(CleanerError, match="Metadata read failed"):
+                get_file_metadata(temp_image)
+
+    def test_get_file_metadata_bad_json(self, temp_image):
+        """Test metadata retrieval handles invalid JSON output."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="not-json",
+                stderr="",
+            )
+
+            with pytest.raises(CleanerError, match="Failed to parse metadata"):
+                get_file_metadata(temp_image)

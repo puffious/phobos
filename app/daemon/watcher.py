@@ -36,7 +36,7 @@ class FileProcessingHandler(FileSystemEventHandler):
         self.watch_dir.mkdir(parents=True, exist_ok=True)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def on_created(self, event):
+    def on_created(self, event: FileCreatedEvent):
         """Handle file creation events."""
         if event.is_directory:
             return

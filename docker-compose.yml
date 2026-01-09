@@ -11,6 +11,7 @@ services:
       - DAEMON_MODE=${DAEMON_MODE:-false}
       - WATCH_DIR=${WATCH_DIR:-/data/watch}
       - OUTPUT_DIR=${OUTPUT_DIR:-/data/clean}
+      - FIREBASE_ENABLED=${FIREBASE_ENABLED:-true}
       - RCLONE_REMOTE_NAME=${RCLONE_REMOTE_NAME:-gdrive}
       - RCLONE_DEST_PATH=${RCLONE_DEST_PATH:-backups}
       - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-/app/firebase-service-account.json}

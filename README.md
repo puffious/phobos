@@ -48,6 +48,12 @@ python main.py health
 # Sanitize a file
 python main.py sanitize /path/to/photo.jpg
 
+# Preview metadata only (no changes)
+python main.py sanitize /path/to/photo.jpg --dry-run
+
+# Skip confirmation after preview
+python main.py sanitize /path/to/photo.jpg --confirm
+
 # Backup a file
 python main.py backup /path/to/file.pdf --remote gdrive:backups
 
@@ -118,6 +124,7 @@ The file watcher (`app/daemon/watcher.py`) monitors `WATCH_DIR` and:
 | `OUTPUT_DIR` | `/data/clean` | Directory for processed files |
 | `RCLONE_REMOTE_NAME` | `gdrive` | Rclone remote name (from rclone.conf) |
 | `RCLONE_DEST_PATH` | `backups` | Folder path on remote |
+| `FIREBASE_ENABLED` | `true` | Toggle Firestore logging (set to `false` to disable) |
 | `FIREBASE_CREDENTIALS` | - | Path to Firebase service account JSON |
 
 ### Setup Firebase

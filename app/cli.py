@@ -8,6 +8,7 @@ Provides commands for interacting with the CleanSlate service:
 - run-api: start the API server
 """
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -15,7 +16,7 @@ from pathlib import Path
 import typer
 
 from app.services.backup_service import backup_file, BackupError
-from app.services.cleaner_service import sanitize_file, CleanerError
+from app.services.cleaner_service import sanitize_file, CleanerError, get_file_metadata
 
 app = typer.Typer(help="CleanSlate CLI")
 
@@ -29,7 +30,11 @@ def health():
 
 
 @app.command()
-def sanitize(filepath: str = typer.Argument(..., help="Path to file to sanitize")):
+def sanitize(
+    filepath: str = typer.Argument(..., help="Path to file to sanitize"),
+    dry_run: bool = typer.Option(False, help="Show metadata and skip removal"),
+    confirm: bool = typer.Option(False, help="Skip confirmation prompt"),
+):
     """Remove metadata from a file."""
     file_path = Path(filepath)
     
@@ -39,6 +44,25 @@ def sanitize(filepath: str = typer.Argument(..., help="Path to file to sanitize"
     
     try:
         typer.echo(f"Sanitizing: {filepath}")
+
+        metadata_result = get_file_metadata(str(file_path))
+        metadata = metadata_result.get("metadata", {})
+        typer.echo("Metadata to be removed:")
+        if metadata:
+            typer.echo(json.dumps(metadata, indent=2))
+        else:
+            typer.echo("  (No metadata found)")
+
+        if dry_run:
+            typer.secho("Dry run: no changes made.", fg=typer.colors.YELLOW)
+            raise typer.Exit(0)
+
+        if not confirm:
+            proceed = typer.confirm("Proceed with metadata removal?", default=False)
+            if not proceed:
+                typer.echo("Aborted.")
+                raise typer.Exit(0)
+
         result = sanitize_file(str(file_path))
         
         if result.get("success"):

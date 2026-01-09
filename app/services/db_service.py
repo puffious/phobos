@@ -16,6 +16,21 @@ class DatabaseError(Exception):
 _db_client: Optional[firestore.client.Client] = None
 
 
+_TRUTHY = {"1", "true", "yes", "on", "y", "t"}
+_FALSY = {"0", "false", "no", "off", "n", "f"}
+
+
+def _firebase_enabled() -> bool:
+    """Return whether Firebase logging is enabled via env flag."""
+    raw = os.getenv("FIREBASE_ENABLED", "true").strip().lower()
+    if raw in _TRUTHY:
+        return True
+    if raw in _FALSY:
+        return False
+    # default to False on invalid input to fail safe
+    return False
+
+
 def get_db_client() -> firestore.client.Client:
     """
     Get or initialize the Firestore client (lazy singleton pattern).
@@ -29,6 +44,9 @@ def get_db_client() -> firestore.client.Client:
     Raises:
         DatabaseError: If Firebase credentials are not found or invalid
     """
+    if not _firebase_enabled():
+        raise DatabaseError("Firebase disabled via FIREBASE_ENABLED=false")
+
     global _db_client
 
     if _db_client is not None:
@@ -90,6 +108,10 @@ def log_file_event(
     Raises:
         DatabaseError: If the logging operation fails
     """
+    if not _firebase_enabled():
+        # Skip logging entirely when disabled; return a sentinel ID
+        return "firebase_disabled"
+
     if timestamp is None:
         timestamp = datetime.now()
 
