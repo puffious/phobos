@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  cleanslate:
+    build: .
+    image: cleanslate:latest
+    env_file:
+      - .env
+    environment:
+      # Override defaults if needed
+      - DAEMON_MODE=${DAEMON_MODE:-false}
+      - WATCH_DIR=${WATCH_DIR:-/data/watch}
+      - OUTPUT_DIR=${OUTPUT_DIR:-/data/clean}
+      - RCLONE_REMOTE_NAME=${RCLONE_REMOTE_NAME:-gdrive}
+      - RCLONE_DEST_PATH=${RCLONE_DEST_PATH:-backups}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-/app/firebase-service-account.json}
+    volumes:
+      - ./data:/data
+      - ./rclone.conf:/root/.config/rclone/rclone.conf:ro
+      - ./firebase-service-account.json:/app/firebase-service-account.json:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
