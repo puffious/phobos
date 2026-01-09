@@ -292,3 +292,21 @@ class TestGetFileMetadata:
 
             with pytest.raises(CleanerError, match="Failed to parse metadata"):
                 get_file_metadata(temp_image)
+
+    def test_get_file_metadata_grouped(self, temp_image):
+        """Test grouped metadata includes group prefixes and uses -G1 flag."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout='[{"SourceFile": "file.jpg", "EXIF:Make": "Canon", "File:FileName": "test.jpg"}]',
+                stderr="",
+            )
+
+            result = get_file_metadata(temp_image, grouped=True)
+
+            assert result["success"] is True
+            assert result["metadata"].get("EXIF:Make") == "Canon"
+            assert "SourceFile" not in result["metadata"]
+
+            call_args = mock_run.call_args[0][0]
+            assert "-G1" in call_args

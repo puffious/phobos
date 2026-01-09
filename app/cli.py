@@ -16,7 +16,7 @@ from pathlib import Path
 import typer
 
 from app.services.backup_service import backup_file, BackupError
-from app.services.cleaner_service import sanitize_file, CleanerError, get_file_metadata
+from app.services.cleaner_service import sanitize_file, CleanerError, get_file_metadata, REMOVABLE_GROUPS
 
 app = typer.Typer(help="CleanSlate CLI")
 
@@ -34,6 +34,7 @@ def sanitize(
     filepath: str = typer.Argument(..., help="Path to file to sanitize"),
     dry_run: bool = typer.Option(False, help="Show metadata and skip removal"),
     confirm: bool = typer.Option(False, help="Skip confirmation prompt"),
+    show_all_metadata: bool = typer.Option(False, help="Show all metadata (not only removable)"),
 ):
     """Remove metadata from a file."""
     file_path = Path(filepath)
@@ -45,13 +46,22 @@ def sanitize(
     try:
         typer.echo(f"Sanitizing: {filepath}")
 
-        metadata_result = get_file_metadata(str(file_path))
+        metadata_result = get_file_metadata(str(file_path), grouped=True)
         metadata = metadata_result.get("metadata", {})
-        typer.echo("Metadata to be removed:")
-        if metadata:
+
+        if show_all_metadata:
+            typer.echo("All metadata (including non-removable):")
             typer.echo(json.dumps(metadata, indent=2))
         else:
-            typer.echo("  (No metadata found)")
+            removable = {
+                k: v for k, v in metadata.items()
+                if ":" in k and k.split(":", 1)[0] in REMOVABLE_GROUPS
+            }
+            typer.echo("Metadata that will be removed:")
+            if removable:
+                typer.echo(json.dumps(removable, indent=2))
+            else:
+                typer.echo("  (No removable metadata found)")
 
         if dry_run:
             typer.secho("Dry run: no changes made.", fg=typer.colors.YELLOW)

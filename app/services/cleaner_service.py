@@ -11,6 +11,19 @@ class CleanerError(Exception):
 # Supported file extensions for metadata removal
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".docx", ".pdf", ".mp4", ".mov"}
 
+# Common metadata groups exiftool can remove with -all=
+# This list is heuristic and covers most image/doc/video metadata groups.
+REMOVABLE_GROUPS = {
+    "EXIF",
+    "XMP",
+    "IPTC",
+    "JFIF",
+    "ICC_Profile",
+    "PNG",
+    "PDF",
+    "QuickTime",
+}
+
 
 def _validate_file_path(file_path: str):
     """Validate the file path and return a Path object plus extension."""
@@ -86,15 +99,19 @@ def sanitize_file(file_path: str) -> dict:
     }
 
 
-def get_file_metadata(file_path: str) -> dict:
-    """Read metadata for a file using exiftool without modifying it."""
+def get_file_metadata(file_path: str, grouped: bool = False) -> dict:
+    """Read metadata for a file using exiftool without modifying it.
+
+    Args:
+        file_path: Path to file
+        grouped: If True, include group names (e.g., EXIF:Make) via -G1
+    """
     file_obj, file_ext = _validate_file_path(file_path)
 
-    cmd = [
-        "exiftool",
-        "-json",
-        str(file_obj),
-    ]
+    cmd = ["exiftool"]
+    if grouped:
+        cmd.append("-G1")
+    cmd.extend(["-json", str(file_obj)])
 
     try:
         result = subprocess.run(

@@ -54,6 +54,9 @@ python main.py sanitize /path/to/photo.jpg --dry-run
 # Skip confirmation after preview
 python main.py sanitize /path/to/photo.jpg --confirm
 
+# Show all metadata (not only removable)
+python main.py sanitize /path/to/photo.jpg --dry-run --show-all-metadata
+
 # Backup a file
 python main.py backup /path/to/file.pdf --remote gdrive:backups
 
@@ -110,8 +113,30 @@ The file watcher (`app/daemon/watcher.py`) monitors `WATCH_DIR` and:
 
 - `GET /health` - Health check
 - `GET /status` - Service status
-- `POST /sanitize` - Remove metadata from a file
+- `POST /sanitize` - Upload a file, returns full metadata, removed metadata, and a shareable link to the sanitized file on the configured rclone remote
 - `POST /backup` - Backup a file to cloud
+
+Example sanitize upload (multipart):
+
+```bash
+curl -X POST http://localhost:8000/sanitize \
+  -F "file=@/path/to/photo.jpg" | jq
+```
+
+Example response (abridged):
+
+```json
+{
+  "success": true,
+  "message": "File sanitized successfully",
+  "file_path": "/tmp/cleanslate_uploads/abc123.jpg",
+  "file_size": 12345,
+  "metadata_before": {"EXIF:Make": "Canon"},
+  "metadata_after": {},
+  "removed_metadata": {"EXIF:Make": {"before": "Canon", "after": null}},
+  "remote_link": "https://drive.google.com/..."
+}
+```
 
 ## Configuration
 

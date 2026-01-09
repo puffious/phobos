@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.backup_service import BackupError, backup_file
+from app.services.backup_service import BackupError, backup_file, generate_remote_link
 
 
 @pytest.fixture
@@ -156,3 +156,50 @@ class TestBackupFile:
 
             assert result["success"] is True
             assert result["file"] == str(test_file)
+
+
+class TestGenerateRemoteLink:
+    """Test the generate_remote_link helper."""
+
+    def test_generate_remote_link_success(self):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="https://drive.google.com/some/link\n",
+                stderr="",
+            )
+
+            link = generate_remote_link("gdrive:backups/file.jpg")
+            assert link == "https://drive.google.com/some/link"
+
+            call_args = mock_run.call_args[0][0]
+            assert call_args[:2] == ["rclone", "link"]
+
+    def test_generate_remote_link_rclone_missing(self):
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("rclone not found")
+
+            with pytest.raises(BackupError, match="rclone not found"):
+                generate_remote_link("gdrive:backups/file.jpg")
+
+    def test_generate_remote_link_failure_exit_code(self):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1,
+                stdout="",
+                stderr="boom",
+            )
+
+            with pytest.raises(BackupError, match="Failed to generate link"):
+                generate_remote_link("gdrive:backups/file.jpg")
+
+    def test_generate_remote_link_empty_output(self):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="",
+                stderr="",
+            )
+
+            with pytest.raises(BackupError, match="returned empty output"):
+                generate_remote_link("gdrive:backups/file.jpg")

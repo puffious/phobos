@@ -82,3 +82,28 @@ def backup_file(local_path: str, remote_dest: str) -> dict:
             parsed_output["json_output"] = None
 
     return parsed_output
+
+
+def generate_remote_link(remote_path: str) -> str:
+    """Generate a shareable link for a file on the remote using rclone link."""
+    cmd = ["rclone", "link", remote_path]
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as e:
+        raise BackupError(f"rclone not found in PATH: {e}")
+
+    if result.returncode != 0:
+        error_msg = result.stderr.strip() if result.stderr.strip() else "rclone link failed"
+        raise BackupError(f"Failed to generate link: {error_msg} (exit code: {result.returncode})")
+
+    link = result.stdout.strip()
+    if not link:
+        raise BackupError("rclone link returned empty output")
+
+    return link
