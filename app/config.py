@@ -43,6 +43,7 @@ class AppConfig:
     rclone_dest_path: str
     firebase_enabled: bool
     firebase_credentials: Optional[Path]
+    verbose_logging: bool
 
 
 _DEFAULTS = {
@@ -71,6 +72,9 @@ def load_config() -> AppConfig:
     firebase_enabled_raw = _get_env("FIREBASE_ENABLED", default="true", required=False)
     firebase_enabled = _parse_bool(firebase_enabled_raw, "FIREBASE_ENABLED")
     
+    verbose_logging_raw = _get_env("VERBOSE_LOGGING", default="false", required=False)
+    verbose_logging = _parse_bool(verbose_logging_raw, "VERBOSE_LOGGING")
+    
     # Only require Firebase credentials if Firebase is enabled
     firebase_credentials: Optional[Path] = None
     if firebase_enabled:
@@ -87,4 +91,5 @@ def load_config() -> AppConfig:
         rclone_dest_path=rclone_dest_path,
         firebase_enabled=firebase_enabled,
         firebase_credentials=firebase_credentials,
+        verbose_logging=verbose_logging,
     )

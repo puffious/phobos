@@ -5,20 +5,28 @@ import signal
 import sys
 import threading
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+from app.config import load_config
+
+
+def setup_logging(verbose: bool = False):
+    """Configure logging based on verbosity."""
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+
 logger = logging.getLogger(__name__)
 
 
 def run_daemon_mode():
     """Run in daemon mode with watcher + API."""
-    from app.config import load_config
     from app.daemon.watcher import start_watcher, stop_watcher
     import uvicorn
     
     config = load_config()
+    setup_logging(config.verbose_logging)
     
     # Start file watcher in background thread
     watch_dir = str(config.watch_dir)
@@ -59,8 +67,11 @@ def run_api_only():
 
 def main():
     """Main entrypoint."""
+    config = load_config()
+    setup_logging(config.verbose_logging)
+    
     # Check if running in daemon mode via environment variable
-    daemon_mode = os.getenv("DAEMON_MODE", "false").lower() in ("true", "1", "yes")
+    daemon_mode = config.daemon_mode
     
     # If CLI args provided, delegate to CLI
     if len(sys.argv) > 1:

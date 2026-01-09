@@ -43,7 +43,7 @@ class TestBackupFile:
             assert call_args[1] == "copy"
             assert call_args[2] == temp_file
             assert call_args[3] == "gdrive:backups"
-            assert "--json" in call_args
+            # --json flag removed, not supported by rclone copy
 
     def test_backup_file_not_found(self):
         """Test backup with non-existent file."""

@@ -1,8 +1,11 @@
 """Rclone backup service for uploading files to cloud storage."""
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 class BackupError(Exception):
@@ -18,29 +21,32 @@ def backup_file(local_path: str, remote_dest: str) -> dict:
         remote_dest: Remote destination (e.g., 'gdrive:backups')
 
     Returns:
-        dict: Parsed JSON output from rclone command
+        dict: Result metadata from backup operation
 
     Raises:
         BackupError: If the file doesn't exist or rclone command fails
         FileNotFoundError: If the local file doesn't exist
     """
     local_file = Path(local_path)
+    logger.debug(f"Starting backup for {local_path} to {remote_dest}")
 
     # Validate local file exists
     if not local_file.exists():
+        logger.error(f"Local file not found: {local_path}")
         raise FileNotFoundError(f"Local file not found: {local_path}")
 
     if not local_file.is_file():
+        logger.error(f"Path is not a file: {local_path}")
         raise BackupError(f"Path is not a file: {local_path}")
 
-    # Build rclone copy command
+    # Build rclone copy command (without --json, not supported for copy)
     cmd = [
         "rclone",
         "copy",
         str(local_file),
         remote_dest,
-        "--json",
     ]
+    logger.debug(f"Running rclone command: {' '.join(cmd)}")
 
     try:
         result = subprocess.run(
@@ -50,16 +56,20 @@ def backup_file(local_path: str, remote_dest: str) -> dict:
             check=False,
         )
     except FileNotFoundError as e:
+        logger.error(f"rclone not found in PATH: {e}")
         raise BackupError(f"rclone not found in PATH: {e}")
 
-    # Parse JSON output
+    # Parse output
     output_lines = result.stdout.strip().split("\n") if result.stdout.strip() else []
     errors = result.stderr.strip().split("\n") if result.stderr.strip() else []
 
     # Check exit code
     if result.returncode != 0:
         error_msg = " ".join(errors) if errors else "rclone command failed"
+        logger.error(f"Backup failed for {local_path}: {error_msg} (exit code: {result.returncode})")
         raise BackupError(f"Backup failed: {error_msg} (exit code: {result.returncode})")
+
+    logger.info(f"Backup successful for {local_path} to {remote_dest}")
 
     # Parse the output - rclone may output multiple JSON objects
     parsed_output = {
@@ -86,6 +96,7 @@ def backup_file(local_path: str, remote_dest: str) -> dict:
 
 def generate_remote_link(remote_path: str) -> str:
     """Generate a shareable link for a file on the remote using rclone link."""
+    logger.debug(f"Generating link for {remote_path}")
     cmd = ["rclone", "link", remote_path]
 
     try:
@@ -96,14 +107,18 @@ def generate_remote_link(remote_path: str) -> str:
             check=False,
         )
     except FileNotFoundError as e:
+        logger.error(f"rclone not found in PATH: {e}")
         raise BackupError(f"rclone not found in PATH: {e}")
 
     if result.returncode != 0:
         error_msg = result.stderr.strip() if result.stderr.strip() else "rclone link failed"
+        logger.error(f"Failed to generate link for {remote_path}: {error_msg}")
         raise BackupError(f"Failed to generate link: {error_msg} (exit code: {result.returncode})")
 
     link = result.stdout.strip()
     if not link:
+        logger.error(f"rclone link returned empty output for {remote_path}")
         raise BackupError("rclone link returned empty output")
 
+    logger.info(f"Generated link for {remote_path}")
     return link

@@ -1,7 +1,10 @@
 """Metadata removal service using exiftool."""
 import json
+import logging
 import subprocess
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 class CleanerError(Exception):
@@ -61,6 +64,7 @@ def sanitize_file(file_path: str) -> dict:
         CleanerError: If the file extension is not supported, file doesn't exist, or exiftool fails
         FileNotFoundError: If the file doesn't exist
     """
+    logger.debug(f"Starting sanitization for {file_path}")
     file_obj, file_ext = _validate_file_path(file_path)
 
     # Build exiftool command to remove all metadata
@@ -70,6 +74,7 @@ def sanitize_file(file_path: str) -> dict:
         "-overwrite_original",
         str(file_obj),
     ]
+    logger.debug(f"Running exiftool command for {file_path}")
 
     try:
         result = subprocess.run(
@@ -79,14 +84,18 @@ def sanitize_file(file_path: str) -> dict:
             check=False,
         )
     except FileNotFoundError as e:
+        logger.error(f"exiftool not found in PATH: {e}")
         raise CleanerError(f"exiftool not found in PATH: {e}")
 
     # Check exit code
     if result.returncode != 0:
         error_msg = result.stderr.strip() if result.stderr.strip() else "exiftool command failed"
+        logger.error(f"Metadata removal failed for {file_path}: {error_msg}")
         raise CleanerError(
             f"Metadata removal failed for {file_path}: {error_msg} (exit code: {result.returncode})"
         )
+
+    logger.info(f"Sanitization successful for {file_path}")
 
     # Return success metadata
     return {
