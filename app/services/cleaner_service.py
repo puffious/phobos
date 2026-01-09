@@ -12,7 +12,7 @@ class CleanerError(Exception):
 
 
 # Supported file extensions for metadata removal
-SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".docx", ".pdf", ".mp4", ".mov"}
+SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf", ".mp4", ".mov"}
 
 # Common metadata groups exiftool can remove with -all=
 # This list is heuristic and covers most image/doc/video metadata groups.

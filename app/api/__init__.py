@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import load_config
@@ -18,6 +19,15 @@ from app.services.db_service import log_file_event, DatabaseError
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="CleanSlate", version="0.0.1", description="Privacy tool for metadata removal")
+
+# Enable CORS for all origins (allow frontend to call API)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 class SanitizeResponse(BaseModel):

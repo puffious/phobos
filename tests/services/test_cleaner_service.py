@@ -217,7 +217,7 @@ class TestSanitizeFile:
 
     def test_supported_extensions_contain_required(self):
         """Test that all required extensions are in SUPPORTED_EXTENSIONS."""
-        required = {".jpg", ".png", ".docx", ".pdf", ".mp4", ".mov"}
+        required = {".jpg", ".png", ".pdf", ".mp4", ".mov"}
         assert required.issubset(SUPPORTED_EXTENSIONS)
 
     def test_jpeg_extension_supported(self, tmp_path):

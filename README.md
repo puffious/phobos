@@ -14,7 +14,7 @@ A containerized privacy tool that strips metadata from files (images, docs, vide
 ## Supported File Types
 
 - Images: `.jpg`, `.jpeg`, `.png`
-- Documents: `.pdf`, `.docx`
+- Documents: `.pdf`
 - Videos: `.mp4`, `.mov`
 
 ## Quick Start
